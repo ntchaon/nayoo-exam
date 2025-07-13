@@ -16,7 +16,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   type?: "button" | "submit" | "reset";
-  variant?: "primary" | "secondary" | "danger";
+  variant?: "primary" | "secondary" | "danger" | "info" | "warning" | "link";
   disabled?: boolean;
   loading?: boolean;
 }>();
@@ -27,6 +27,12 @@ const variantClass = computed(() => {
       return "bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-white";
     case "danger":
       return "bg-red-600 text-white hover:bg-red-700";
+    case "info":
+      return "bg-sky-300 text-white hover:bg-sky-500";
+    case "warning":
+      return "bg-yellow-500 text-white hover:bg-yellow-600";
+    case "link":
+      return "text-blue-600 hover:underline";
     default:
       return "bg-blue-600 text-white hover:bg-blue-700";
   }

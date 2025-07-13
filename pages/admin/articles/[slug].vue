@@ -6,6 +6,9 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  middleware: ["admin"],
+});
 import { fullScreenLoading } from "@/stores/load";
 const ui = fullScreenLoading();
 import { doc, getDocs, query, collection, where } from "firebase/firestore";
@@ -33,7 +36,6 @@ onBeforeMount(async () => {
     where("slug", "==", slug)
   );
 
-  // const q = doc(firestore, "articles", route.params.id as string);
   const snap = await getDocs(docRef);
 
   if (!snap.empty) {

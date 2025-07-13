@@ -59,8 +59,9 @@ const tags = ref([...props.modelValue]);
 const input = ref("");
 const inputRef = ref(null);
 
-watch(tags, (val) => {
-  emit("update:modelValue", val);
+watchEffect(() => {
+  console.log(tags.value);
+  emit("update:modelValue", tags.value);
 });
 
 function addTag() {

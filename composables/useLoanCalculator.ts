@@ -2,7 +2,7 @@ import type { LoanInput } from "~/types/loan";
 
 export function useLoanCalculator(input: LoanInput) {
   const { amount, interestRate, years, months, startDate } = input;
-
+  console.log(amount);
   const totalMonths = years * 12 + months;
   const monthlyRate = interestRate / 100 / 12;
 
@@ -17,7 +17,7 @@ export function useLoanCalculator(input: LoanInput) {
     const total = interest + principal;
     remaining -= principal;
     totalInterest += interest;
-
+    console.log(remaining);
     if (i === 1) {
       monthlyPayment = total;
     }

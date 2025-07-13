@@ -61,7 +61,12 @@ const emit = defineEmits<{
 
 function onInput(e: Event) {
   const target = e.target as HTMLInputElement;
-  if (props.type != "file") emit("update:modelValue", target.value);
+  if (props.type != "file")
+    emit(
+      "update:modelValue",
+      props.type === "number" ? target.valueAsNumber : target.value
+    );
+  else emit("update:modelValue", target.files?.[0] || null);
 }
 
 async function onChange(e: Event) {

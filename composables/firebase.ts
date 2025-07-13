@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-
+import { getAuth } from "firebase/auth";
 export const createFirebase = () => {
   const config = useRuntimeConfig().public;
   const firebaseApp = getApps().length
@@ -14,9 +14,9 @@ export const createFirebase = () => {
         messagingSenderId: config.FIREBASE_MESSAGING_SENDER_ID,
         appId: config.FIREBASE_APP_ID,
       });
-
+  const auth = getAuth(firebaseApp);
   const firestore = getFirestore(firebaseApp);
   const storage = getStorage(firebaseApp);
 
-  return { firebaseApp, firestore, storage };
+  return { firebaseApp, firestore, storage, auth };
 };

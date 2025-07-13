@@ -5,12 +5,7 @@
     </div>
 
     <div v-else-if="article">
-      <img
-        v-if="article.coverUrl"
-        :src="article.coverUrl"
-        alt="cover"
-        class="w-full max-h-[400px] object-cover rounded mb-6"
-      />
+      <BaseImage :src="article.coverUrl || null" alt="article cover image" />
 
       <h1 class="text-3xl font-bold mb-2">{{ article.title }}</h1>
 
@@ -25,7 +20,6 @@
         v-html="article.content.replace(/\\n/g, '<br>')"
       />
 
-      <!-- ✅ Tags -->
       <div v-if="article.tags?.length" class="mt-6">
         <h3 class="text-sm font-semibold text-gray-500 mb-2">แท็ก:</h3>
         <div class="flex flex-wrap gap-2">
@@ -41,10 +35,10 @@
 
       <div class="flex items-center gap-4 mt-8">
         <button @click="toggleLike" class="text-sm">
-          👍 {{ liked ? "เลิกถูกใจ" : "ถูกใจ" }}
+          {{ liked ? "เลิกถูกใจ" : "ถูกใจ" }}
         </button>
         <button @click="toggleBookmark" class="text-sm">
-          📌 {{ bookmarked ? "เลิกบันทึก" : "บันทึก" }}
+          {{ bookmarked ? "เลิกบันทึก" : "บันทึก" }}
         </button>
         <div class="ml-auto flex gap-3 text-sm">
           <a
@@ -66,32 +60,33 @@
       </div>
 
       <div class="mt-10">
-        <h3 class="text-lg font-semibold mb-2">ความคิดเห็น</h3>
-        <textarea
+        <BaseInputTextArea
+          label="ความคิดเห็น"
           v-model="comment"
           placeholder="แสดงความคิดเห็น..."
-          class="w-full border rounded p-2 mb-2"
+          @onEnter="postComment"
         />
-        <button
-          @click="postComment"
-          class="bg-blue-600 text-white px-4 py-1 rounded text-sm"
-        >
-          ส่งความคิดเห็น
-        </button>
+
+        <BaseButton @click="postComment"> ส่งความคิดเห็น </BaseButton>
 
         <ul class="mt-4 space-y-2">
           <li
             v-for="(c, i) in comments"
-            :key="i"
-            class="bg-gray-100 p-2 rounded text-sm"
+            :key="c.id || i"
+            class="w-full rounded border px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
           >
-            {{ c }}
+            <div class="font-semibold">{{ c.user || "ไม่ระบุชื่อ" }}</div>
+            <div>{{ c.content }}</div>
+            <div class="text-xs text-gray-400">
+              {{ c.createdAt?.toDate?.().toLocaleString?.() || "..." }}
+            </div>
           </li>
         </ul>
       </div>
     </div>
 
     <div v-else class="text-center text-red-500">ไม่พบบทความนี้</div>
+    <ArticleRelate :article="article" />
   </div>
 </template>
 <script setup lang="ts">
@@ -105,24 +100,14 @@ import {
   query,
   updateDoc,
   where,
+  serverTimestamp,
+  addDoc,
+  orderBy,
 } from "firebase/firestore";
 import { useHead, useAsyncData, onMounted } from "#imports";
 import { createFirebase } from "~/composables/firebase";
-import { useRequestURL, useRuntimeConfig, navigateTo } from "nuxt/app";
-type Article = {
-  id: string;
-  title: string;
-  description: string;
-  content: string;
-  category?: string;
-  coverUrl?: string;
-  tags?: string[];
-  views?: number;
-  status?: string;
-  slug?: string;
-  isActive?: boolean;
-  createdAt?: any; // หรือ Timestamp
-};
+import { useRequestURL, navigateTo } from "nuxt/app";
+import type { ArticleType } from "~/types";
 const { firestore } = createFirebase();
 const ui = fullScreenLoading();
 const route = useRoute();
@@ -133,9 +118,11 @@ const slug = route.params.slug as string;
 const liked = ref(false);
 const bookmarked = ref(false);
 const comment = ref("");
-const comments = ref<string[]>([]);
+const comments = ref<
+  { id?: string; content: string; createdAt?: any; user?: string }[]
+>([]);
 
-const { data: articleData } = await useAsyncData<Article | null>(
+const { data: articleData } = await useAsyncData<ArticleType | null>(
   `article-${slug}`,
   async () => {
     const q = query(
@@ -149,7 +136,7 @@ const { data: articleData } = await useAsyncData<Article | null>(
 
     const docSnap = snap.docs[0];
     const rawData = docSnap.data();
-    const pojo = JSON.parse(JSON.stringify(rawData)) as Omit<Article, "id">;
+    const pojo = JSON.parse(JSON.stringify(rawData)) as Omit<ArticleType, "id">;
     return {
       id: docSnap.id,
       ...pojo,
@@ -197,13 +184,10 @@ onMounted(async () => {
   ui.stopLoading();
 
   if (articleId.value) {
-    const stored = localStorage.getItem(`comments-${articleId.value}`);
-    comments.value = stored ? JSON.parse(stored) : [];
-
+    getComment();
     liked.value = localStorage.getItem(`like-${articleId.value}`) === "1";
     bookmarked.value =
       localStorage.getItem(`bookmark-${articleId.value}`) === "1";
-
 
     const articleRef = doc(firestore, "articles", articleId.value);
     await updateDoc(articleRef, {
@@ -225,14 +209,48 @@ function toggleBookmark() {
   );
 }
 
-function postComment() {
-  if (comment.value.trim()) {
-    comments.value.push(comment.value.trim());
-    localStorage.setItem(
-      `comments-${articleId.value}`,
-      JSON.stringify(comments.value)
+async function postComment() {
+  const text = comment.value.trim();
+  if (!text || !articleId.value) return;
+
+  const commentData = {
+    content: text,
+    createdAt: serverTimestamp(),
+    user: localStorage.getItem("user") || "Guest_" + new Date().getTime(),
+  };
+
+  try {
+    await addDoc(
+      collection(firestore, "articles", articleId.value, "comments"),
+      commentData
     );
+
+    comments.value.unshift(commentData);
+    localStorage.setItem(`user`, "Guest_" + new Date().getTime());
     comment.value = "";
+  } catch (err) {
+    console.error("เพิ่มคอมเมนต์ไม่สำเร็จ:", err);
+  }
+}
+async function getComment() {
+  try {
+    const commentSnap = await getDocs(
+      query(
+        collection(firestore, "articles", articleId.value, "comments"),
+        orderBy("createdAt", "desc")
+      )
+    );
+    comments.value = commentSnap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        content: data.content ?? "",
+        createdAt: data.createdAt,
+        user: data.user ?? "ไม่ระบุชื่อ",
+      };
+    });
+  } catch (err) {
+    console.error("เพิ่มคอมเมนต์ไม่สำเร็จ:", err);
   }
 }
 </script>

@@ -25,6 +25,28 @@
 </template>
 
 <script setup lang="ts">
+import { useHead } from "#imports";
+useHead({
+  title: "คำนวนดอกเบี้ยเงินกู้ | Nayoo Exam",
+  meta: [
+    {
+      name: "description",
+      content: "คำนวนดอกเบี้ยเงินกู้",
+    },
+    {
+      name: "keywords",
+      content: "คำนวนดอกเบี้ยเงินกู้ | Nayoo Exam",
+    },
+    {
+      property: "og:title",
+      content: "เครื่องมือคำนวนดอกเบี้ยเงินกู้ | Nayoo Exam",
+    },
+    {
+      property: "og:description",
+      content: "คำนวนดอกเบี้ยเงินกู้",
+    },
+  ],
+});
 import { useLoanCalculator } from "~/composables/useLoanCalculator";
 import type { LoanInput, LoanSummary, InstallmentRow } from "~/types/loan";
 

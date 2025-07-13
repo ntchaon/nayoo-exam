@@ -1,4 +1,4 @@
-<!-- components/BaseStatusRadio.vue -->
+
 <template>
   <div class="flex items-center gap-6">
     <label class="flex items-center gap-2 cursor-pointer">

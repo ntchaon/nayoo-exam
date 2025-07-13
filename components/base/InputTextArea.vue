@@ -20,6 +20,7 @@
       :value="modelValue"
       @input="onInput"
       @change="onChange"
+      @keypress.enter.prevent="emit('onEnter')"
       rows="4"
     />
 
@@ -41,6 +42,7 @@ const emit = defineEmits<{
   (e: "update:modelValue", value: any): void;
   (e: "update:previewImage", value: any): void;
   (e: "change", ev: Event): void;
+  (e: "onEnter"): void;
 }>();
 
 function onInput(e: Event) {

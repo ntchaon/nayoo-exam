@@ -1,4 +1,3 @@
-<!-- components/BaseStatusSelect.vue -->
 <template>
   <label
     v-if="label"
@@ -16,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-const model = defineModel<string>({ required: true });
+const model = defineModel<string | number>({ required: true });
 const props = defineProps<{
   label?: string;
   required?: boolean;
