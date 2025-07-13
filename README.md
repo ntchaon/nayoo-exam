@@ -61,6 +61,7 @@ npm run dev
 > - Article statistics dashboard
 > - Version history
 > - Preview before publish
+> - Responsive check
 
 ## 3. Architecture Decisions
 
