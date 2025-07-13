@@ -101,15 +101,17 @@ definePageMeta({
   middleware: ["admin"],
 });
 onMounted(async () => {
+  getArticles();
+});
+async function getArticles() {
   ui.startLoading();
   const snapshot = await getDocs(collection(firestore, "articles"));
-  articles.value = snapshot.docs.map((doc) => ({
+  articles.value = snapshot.docs.map((doc: any) => ({
     id: doc.id,
     ...doc.data(),
   })) as ArticleType[];
   ui.stopLoading();
-});
-
+}
 function goToEdit(slug: string) {
   router.push(`/admin/articles/${slug}`);
 }
@@ -126,6 +128,7 @@ async function deleteArticle(id: string) {
     status: "archived",
     isActive: false,
   });
+  getArticles();
 }
 
 function formatDate(timestamp: any) {
@@ -140,7 +143,7 @@ function formatDate(timestamp: any) {
 }
 
 const filteredArticles = computed(() => {
-  return articles.value.filter((a) => {
+  return articles.value.filter((a: ArticleType) => {
     console.log(a);
     const matchTitle = a.title
       ?.toLowerCase()
