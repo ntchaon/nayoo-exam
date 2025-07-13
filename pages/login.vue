@@ -45,7 +45,7 @@ async function handleEmailLogin() {
       email.value,
       password.value
     );
-    console.log("Admin login success:", result.user);
+
     authStore.setUser(result.user);
     router.replace("/admin/articles");
   } catch (err: any) {
