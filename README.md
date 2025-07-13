@@ -6,7 +6,6 @@
 # 2. ติดตั้ง dependencies
 npm install
 
-# 3. รันโปรเจกต์ในโหมด development
 npm run dev
 ```
 
