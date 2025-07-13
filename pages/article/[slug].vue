@@ -106,10 +106,23 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { useHead, useAsyncData } from "#imports";
+import { useHead, useAsyncData, onMounted } from "#imports";
 import { createFirebase } from "~/composables/firebase";
-import { useRequestURL } from "nuxt/app";
-
+import { useRequestURL, useRuntimeConfig, navigateTo } from "nuxt/app";
+type Article = {
+  id: string;
+  title: string;
+  description: string;
+  content: string;
+  category?: string;
+  coverUrl?: string;
+  tags?: string[];
+  views?: number;
+  status?: string;
+  slug?: string;
+  isActive?: boolean;
+  createdAt?: any; // หรือ Timestamp
+};
 const { firestore } = createFirebase();
 const ui = fullScreenLoading();
 const route = useRoute();
@@ -117,10 +130,12 @@ const router = useRouter();
 const { href } = useRequestURL();
 const slug = route.params.slug as string;
 
-const article = ref<any | null>(null);
-const articleId = ref("");
+const liked = ref(false);
+const bookmarked = ref(false);
+const comment = ref("");
+const comments = ref<string[]>([]);
 
-const { data: articleData } = await useAsyncData(
+const { data: articleData } = await useAsyncData<Article | null>(
   `article-${slug}`,
   async () => {
     const q = query(
@@ -133,20 +148,24 @@ const { data: articleData } = await useAsyncData(
     if (snap.empty) return null;
 
     const docSnap = snap.docs[0];
-    articleId.value = docSnap.id;
+    const rawData = docSnap.data();
+    const pojo = JSON.parse(JSON.stringify(rawData)) as Omit<Article, "id">;
     return {
       id: docSnap.id,
-      ...docSnap.data(), // <--- safe แล้ว
+      ...pojo,
     };
   }
 );
 
 if (!articleData.value) {
-  router.push("/articles");
-} else {
-  article.value = articleData.value;
+  if (process.client) router.push("/articles");
+  else navigateTo("/articles");
+}
 
-  // ✅ SSR-compatible meta tags
+const article = computed(() => articleData.value);
+const articleId = computed(() => article.value?.id || "");
+
+if (article.value) {
   useHead({
     title: article.value.title,
     meta: [
@@ -172,31 +191,25 @@ if (!articleData.value) {
       },
     ],
   });
+}
 
-  if (process.client) {
+onMounted(async () => {
+  ui.stopLoading();
+
+  if (articleId.value) {
+    const stored = localStorage.getItem(`comments-${articleId.value}`);
+    comments.value = stored ? JSON.parse(stored) : [];
+
+    liked.value = localStorage.getItem(`like-${articleId.value}`) === "1";
+    bookmarked.value =
+      localStorage.getItem(`bookmark-${articleId.value}`) === "1";
+
+
     const articleRef = doc(firestore, "articles", articleId.value);
     await updateDoc(articleRef, {
       views: increment(1),
     });
   }
-}
-
-const liked = ref(false);
-const bookmarked = ref(false);
-const comment = ref("");
-const comments = ref<string[]>([]);
-
-onMounted(() => {
-  ui.stopLoading();
-
-  if (!articleId.value) return;
-
-  const stored = localStorage.getItem(`comments-${articleId.value}`);
-  comments.value = stored ? JSON.parse(stored) : [];
-
-  liked.value = localStorage.getItem(`like-${articleId.value}`) === "1";
-  bookmarked.value =
-    localStorage.getItem(`bookmark-${articleId.value}`) === "1";
 });
 
 function toggleLike() {
