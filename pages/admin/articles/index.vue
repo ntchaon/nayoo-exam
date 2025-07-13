@@ -68,6 +68,7 @@
               แก้ไข
             </button>
             <button
+              v-if="a.status != 'archived'"
               class="text-red-600 hover:underline"
               @click="deleteArticle(a.id)"
             >
