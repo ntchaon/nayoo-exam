@@ -6,7 +6,7 @@
     </p>
     <NuxtLink
       to="/loan/calculator"
-      class="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 transition"
+      class="no-underline bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 transition"
     >
       เริ่มคำนวณเลย
     </NuxtLink>
