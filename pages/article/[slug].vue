@@ -134,7 +134,10 @@ const { data: articleData } = await useAsyncData(
 
     const docSnap = snap.docs[0];
     articleId.value = docSnap.id;
-    return docSnap.data();
+    return {
+      id: docSnap.id,
+      ...docSnap.data(), // <--- safe แล้ว
+    };
   }
 );
 
