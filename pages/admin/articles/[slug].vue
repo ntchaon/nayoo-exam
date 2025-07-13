@@ -39,7 +39,7 @@ onBeforeMount(async () => {
   if (!snap.empty) {
     const docSnap = snap.docs[0];
     Object.assign(form, docSnap.data());
-
+    formId.value = docSnap.id;
     ui.stopLoading();
   } else {
     router.push("/admin/articles");
