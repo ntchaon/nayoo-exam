@@ -106,82 +106,94 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { useHead } from "#imports";
+import { useHead, useAsyncData } from "#imports";
 import { createFirebase } from "~/composables/firebase";
 import { useRequestURL } from "nuxt/app";
 
-const { href } = useRequestURL();
 const { firestore } = createFirebase();
 const ui = fullScreenLoading();
 const route = useRoute();
 const router = useRouter();
+const { href } = useRequestURL();
 const slug = route.params.slug as string;
 
 const article = ref<any | null>(null);
 const articleId = ref("");
+
+const { data: articleData } = await useAsyncData(
+  `article-${slug}`,
+  async () => {
+    const q = query(
+      collection(firestore, "articles"),
+      where("slug", "==", slug),
+      where("status", "==", "published"),
+      where("isActive", "==", true)
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+
+    const docSnap = snap.docs[0];
+    articleId.value = docSnap.id;
+    return docSnap.data();
+  }
+);
+
+if (!articleData.value) {
+  router.push("/articles");
+} else {
+  article.value = articleData.value;
+
+  // ✅ SSR-compatible meta tags
+  useHead({
+    title: article.value.title,
+    meta: [
+      { name: "description", content: article.value.description },
+      { name: "keywords", content: article.value.tags?.join(", ") || "" },
+      { name: "author", content: "ชื่อผู้เขียนหรือแบรนด์" },
+
+      { property: "og:title", content: article.value.title },
+      { property: "og:description", content: article.value.description },
+      {
+        property: "og:image",
+        content: article.value.coverUrl || "/fallback.jpg",
+      },
+      { property: "og:url", content: href },
+      { property: "og:type", content: "article" },
+
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: article.value.title },
+      { name: "twitter:description", content: article.value.description },
+      {
+        name: "twitter:image",
+        content: article.value.coverUrl || "/fallback.jpg",
+      },
+    ],
+  });
+
+  if (process.client) {
+    const articleRef = doc(firestore, "articles", articleId.value);
+    await updateDoc(articleRef, {
+      views: increment(1),
+    });
+  }
+}
 
 const liked = ref(false);
 const bookmarked = ref(false);
 const comment = ref("");
 const comments = ref<string[]>([]);
 
-onMounted(async () => {
-  ui.startLoading();
-  const q = query(
-    collection(firestore, "articles"),
-    where("slug", "==", slug),
-    where("status", "==", "published"),
-    where("isActive", "==", true)
-  );
-
-  const snap = await getDocs(q);
-
-  if (!snap.empty) {
-    const docSnap = snap.docs[0];
-    article.value = docSnap.data();
-    articleId.value = docSnap.id;
-    useHead({
-      title: article.value.title,
-      meta: [
-        { name: "description", content: article.value.description },
-        { name: "keywords", content: article.value.tags?.join(", ") || "" },
-        { name: "author", content: "ชื่อผู้เขียนหรือแบรนด์" },
-
-        // ✅ Open Graph (Facebook, LINE)
-        { property: "og:title", content: article.value.title },
-        { property: "og:description", content: article.value.description },
-        {
-          property: "og:image",
-          content: article.value.coverUrl || "fallback.jpg",
-        },
-        { property: "og:url", content: window.location.href },
-        { property: "og:type", content: "article" },
-
-        // ✅ Twitter Card
-        { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: article.value.title },
-        { name: "twitter:description", content: article.value.description },
-        {
-          name: "twitter:image",
-          content: article.value.coverUrl || "fallback.jpg",
-        },
-      ],
-    });
-    const articleRef = doc(firestore, "articles", articleId.value);
-    await updateDoc(articleRef, {
-      views: increment(1),
-    });
-
-    const stored = localStorage.getItem(`comments-${articleId.value}`);
-    comments.value = stored ? JSON.parse(stored) : [];
-
-    liked.value = localStorage.getItem(`like-${articleId.value}`) === "1";
-    bookmarked.value =
-      localStorage.getItem(`bookmark-${articleId.value}`) === "1";
-  } else {
-    router.push("/articles");
-  }
+onMounted(() => {
   ui.stopLoading();
+
+  if (!articleId.value) return;
+
+  const stored = localStorage.getItem(`comments-${articleId.value}`);
+  comments.value = stored ? JSON.parse(stored) : [];
+
+  liked.value = localStorage.getItem(`like-${articleId.value}`) === "1";
+  bookmarked.value =
+    localStorage.getItem(`bookmark-${articleId.value}`) === "1";
 });
 
 function toggleLike() {
