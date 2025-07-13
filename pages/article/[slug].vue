@@ -106,7 +106,7 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-
+import { useHead } from "#imports";
 import { createFirebase } from "~/composables/firebase";
 import { useRequestURL } from "nuxt/app";
 
@@ -140,7 +140,33 @@ onMounted(async () => {
     const docSnap = snap.docs[0];
     article.value = docSnap.data();
     articleId.value = docSnap.id;
+    useHead({
+      title: article.value.title,
+      meta: [
+        { name: "description", content: article.value.description },
+        { name: "keywords", content: article.value.tags?.join(", ") || "" },
+        { name: "author", content: "ชื่อผู้เขียนหรือแบรนด์" },
 
+        // ✅ Open Graph (Facebook, LINE)
+        { property: "og:title", content: article.value.title },
+        { property: "og:description", content: article.value.description },
+        {
+          property: "og:image",
+          content: article.value.coverUrl || "fallback.jpg",
+        },
+        { property: "og:url", content: window.location.href },
+        { property: "og:type", content: "article" },
+
+        // ✅ Twitter Card
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: article.value.title },
+        { name: "twitter:description", content: article.value.description },
+        {
+          name: "twitter:image",
+          content: article.value.coverUrl || "fallback.jpg",
+        },
+      ],
+    });
     const articleRef = doc(firestore, "articles", articleId.value);
     await updateDoc(articleRef, {
       views: increment(1),
