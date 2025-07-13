@@ -10,7 +10,7 @@
       </button>
     </div>
 
-    <div v-if="loading">กำลังโหลด...</div>
+    <div v-if="loading"><BaseLoadingSpinner /></div>
     <div v-else-if="articles.length === 0">ยังไม่มีบทความ</div>
 
     <table v-else class="w-full table-auto border border-gray-300">
@@ -30,7 +30,7 @@
           <td class="p-3 border text-center space-x-2">
             <button
               class="text-blue-600 hover:underline"
-              @click="goToEdit(a.id)"
+              @click="goToEdit(a.slug)"
             >
               แก้ไข
             </button>
@@ -52,6 +52,7 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { createFirebase } from "~/composables/firebase";
+import { BaseLoadingSpinner } from "#components";
 const { firestore } = createFirebase();
 
 const articles = ref([]);

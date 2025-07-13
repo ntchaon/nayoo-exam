@@ -1,20 +1,42 @@
 <template>
   <form @submit.prevent="handleSubmit" class="space-y-4">
-    <BaseInput v-model="form.title" label="ชื่อบทความ" required />
+    <BaseInput
+      v-model="form.title"
+      label="ชื่อบทความ"
+      required
+      placeholder="ชื่อบทความ"
+    />
 
-    <div>
-      <BaseInput
-        type="file"
-        accept="image/*"
-        label="ภาพหน้าปก"
-        v-model="form.coverFile"
-        @update:previewImage="form.coverUrl = $event"
-        :previewImage="form.coverUrl"
-      />
-    </div>
+    <BaseInput
+      type="file"
+      accept="image/*"
+      label="ภาพหน้าปก"
+      v-model="form.coverFile"
+      @update:previewImage="form.coverUrl = $event"
+      :previewImage="form.coverUrl"
+    />
 
+    <BaseInputTextArea
+      v-model="form.description"
+      label="คำอธิบาย"
+      required
+      type="textarea"
+      placeholder="คำอธิบายสั้นๆ เกี่ยวกับบทความนี้"
+    />
+    <BaseInput
+      v-model="form.slug"
+      label="ลิงก์บทความ"
+      required
+      placeholder="ลิงก์บทความ"
+    />
     <BaseTinyMCE v-model="form.content" label="คอนเทนต์" required />
-
+    <BaseInputTags v-model="form.tags" label="Tags" />
+    <BaseSelect v-model="form.category" label="หมวดหมู่" required>
+      <option value="" disabled>เลือกหมวดหมู่</option>
+      <option :value="opt.value" v-for="opt of categoryList">
+        {{ opt.label }}
+      </option>
+    </BaseSelect>
     <BaseSelect v-model="form.status" label="สถานะเนื้อหา" required>
       <option value="draft">ร่างบทความ</option>
       <option value="published">เผยแพร่แล้ว</option>
@@ -45,14 +67,11 @@ import {
   addDoc,
   collection,
   Timestamp,
+  getDocs,
 } from "firebase/firestore";
-import {
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
-import { createFirebase } from "~/composables/firebase";
 
+import { createFirebase } from "~/composables/firebase";
+import type { Category } from "~/types";
 const props = defineProps<{
   initialData?: any;
   articleId?: string;
@@ -62,36 +81,49 @@ const props = defineProps<{
 const isEditMode = computed(() => !!props.articleId);
 const { firestore, storage } = createFirebase();
 const router = useRouter();
-
+const categoryList = ref<Category[]>([]);
 const form = reactive({
   title: "",
   content: "",
   coverFile: null as File | null,
   coverUrl: "",
-
+  category: "",
+  tags: [] as string[],
   isActive: false,
   status: "draft",
+  description: "",
+  slug: "",
 });
 
 watch(
   () => props.initialData,
   (val) => {
     if (val) {
-      console.log(val);
-      Object.assign(form, {
-        title: val.title || "",
-        content: val.content || "",
-        coverUrl: val.coverUrl || "",
-        isActive: val.isActive || false,
-        status: val.status || "draft",
-      });
+      Object.assign(form, val);
     }
   },
   { immediate: true }
 );
-
+onMounted(() => {
+  getCategories();
+});
 const uploading = ref(false);
 
+async function getCategories() {
+  const colRef = collection(firestore, "categories");
+  const snapshot = await getDocs(colRef);
+
+  const categories: { value: string; label: string }[] = [];
+
+  snapshot.forEach((doc) => {
+    const data = doc.data();
+    categories.push({
+      value: doc.id, // ใช้ doc id เป็น value
+      label: data.label ?? "", // fallback เผื่อ label ไม่มี
+    });
+  });
+  categoryList.value = categories;
+}
 async function handleSubmit() {
   uploading.value = true;
 

@@ -8,7 +8,7 @@
 <script setup lang="ts">
 import { fullScreenLoading } from "@/stores/load";
 const ui = fullScreenLoading();
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDocs, query, collection, where } from "firebase/firestore";
 
 import { createFirebase } from "~/composables/firebase";
 
@@ -27,15 +27,23 @@ const formId = ref(route.params.id as string);
 
 onBeforeMount(async () => {
   ui.startLoading();
-  const docRef = doc(firestore, "articles", route.params.id as string);
-  const snap = await getDoc(docRef);
+  const slug = route.params.slug as string;
+  const docRef = query(
+    collection(firestore, "articles"),
+    where("slug", "==", slug)
+  );
 
-  if (snap.exists()) {
-    Object.assign(form, snap.data());
-    loading.value = false;
+  // const q = doc(firestore, "articles", route.params.id as string);
+  const snap = await getDocs(docRef);
+
+  if (!snap.empty) {
+    const docSnap = snap.docs[0];
+    Object.assign(form, docSnap.data());
+
     ui.stopLoading();
   } else {
     router.push("/admin/articles");
   }
+  loading.value = false;
 });
 </script>

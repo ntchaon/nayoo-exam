@@ -11,8 +11,7 @@
     v-model="model"
     class="w-full rounded border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
   >
-    <option value="draft">ฉบับร่าง</option>
-    <option value="published">เผยแพร่</option>
+    <slot />
   </select>
 </template>
 
